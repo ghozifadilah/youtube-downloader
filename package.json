@@ -28,22 +28,30 @@
       "node_modules/ffmpeg-static/**/*"
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "public/icon.ico"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "icon": "public/icon.icns"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "icon": "public/icon.png"
     }
   },
   "dependencies": {
     "@distube/ytdl-core": "^4.16.12",
+    "axios": "^1.13.5",
     "ffmpeg-static": "^5.3.0",
     "fluent-ffmpeg": "^2.1.3",
+    "node-id3": "^0.2.9",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "ytpl": "^2.3.0"

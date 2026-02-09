@@ -65,7 +65,7 @@ ipcMain.handle('download-video', async (event, { url, outputPath, format, qualit
         });
 
         if (format === 'mp3') {
-            const mp3Path = await convertToMP3(result.filePath, (progress) => {
+            const mp3Path = await convertToMP3(result.filePath, result.metadata, (progress) => {
                 mainWindow.webContents.send('conversion-progress', progress);
             });
             return { success: true, filePath: mp3Path };

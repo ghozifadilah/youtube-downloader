@@ -10,12 +10,21 @@ function sanitizeFilename(filename) {
 async function getVideoInfo(url) {
     try {
         const info = await ytdl.getInfo(url);
+        const details = info.videoDetails;
+
+        // Try to get artist and title from YouTube music metadata if available
+        const artist = details.author.name;
+        const title = details.title;
+
         return {
-            title: info.videoDetails.title,
-            author: info.videoDetails.author.name,
-            thumbnail: info.videoDetails.thumbnails[0]?.url,
-            duration: info.videoDetails.lengthSeconds,
-            isPlaylist: url.includes('list=')
+            title: title || '',
+            author: artist || '',
+            thumbnail: details.thumbnails[details.thumbnails.length - 1]?.url || details.thumbnails[0]?.url,
+            duration: details.lengthSeconds,
+            isPlaylist: url.includes('list='),
+            album: details.media?.album || '',
+            trackNumber: details.media?.track_number || '',
+            category: details.category
         };
     } catch (error) {
         throw new Error(`Failed to get video info: ${error.message}`);
@@ -61,7 +70,17 @@ async function downloadVideo(url, outputPath, quality = 'highest', progressCallb
             video.pipe(writeStream);
 
             writeStream.on('finish', () => {
-                resolve({ filePath, title: info.videoDetails.title });
+                resolve({
+                    filePath,
+                    title: info.videoDetails.title || '',
+                    metadata: {
+                        title: info.videoDetails.title || '',
+                        artist: info.videoDetails.author.name || '',
+                        album: info.videoDetails.media?.album || '',
+                        trackNumber: info.videoDetails.media?.track_number || '',
+                        image: info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 1]?.url || info.videoDetails.thumbnails[0]?.url
+                    }
+                });
             });
 
             writeStream.on('error', (error) => {
@@ -103,7 +122,7 @@ async function downloadPlaylist(playlistUrl, outputPath, quality, format, playli
 
                 if (format === 'mp3') {
                     const { convertToMP3 } = require('./converter');
-                    const mp3Path = await convertToMP3(result.filePath, itemProgressCallback);
+                    const mp3Path = await convertToMP3(result.filePath, result.metadata, itemProgressCallback);
                     results.push({ ...result, mp3Path, status: 'success' });
                 } else {
                     results.push({ ...result, status: 'success' });
