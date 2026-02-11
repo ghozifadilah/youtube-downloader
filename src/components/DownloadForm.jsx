@@ -57,7 +57,7 @@ function DownloadForm({ onDownload, downloadPath, onSelectPath }) {
                                     onChange={(e) => setFormat(e.target.value)}
                                     disabled={isLoading}
                                 />
-                                <span className="option-icon">🎬</span>
+                                <span className="option-icon">🎥</span>
                                 <span>Video</span>
                             </label>
                             <label className={`format-option ${format === 'mp3' ? 'active' : ''}`}>

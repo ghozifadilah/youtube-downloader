@@ -1,24 +1,22 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@900&display=swap');
 
 :root {
-  --bg-primary: #0f0f23;
-  --bg-secondary: #1a1a2e;
-  --bg-tertiary: #16213e;
-  --accent-primary: #6366f1;
-  --accent-secondary: #8b5cf6;
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --bg-primary: #000000;
+  --bg-secondary: #000000;
+  --bg-tertiary: #000000;
+  --accent-primary: #ffffff;
+  --accent-secondary: #ffffff;
+  --accent-gradient: #ffffff;
   --text-primary: #ffffff;
-  --text-secondary: #a0aec0;
-  --text-muted: #718096;
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.3);
-  --glow: 0 0 20px rgba(99, 102, 241, 0.3);
+  --text-secondary: #ffffff;
+  --text-muted: #aaaaaa;
+  --success: #ffffff;
+  --error: #ff4444;
+  --warning: #ffffff;
+  --border-color: #ffffff;
+  --border-width: 3px;
+  --shadow-brutal: 5px 5px 0px 0px #ffffff;
+  --shadow-brutal-hover: 8px 8px 0px 0px #ffffff;
 }
 
 * {
@@ -28,13 +26,12 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Space Mono', monospace;
   background: var(--bg-primary);
   color: var(--text-primary);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  line-height: 1.4;
+  -webkit-font-smoothing: initial;
+  -moz-osx-font-smoothing: initial;
 }
 
 #root {
@@ -46,69 +43,56 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-  background-image: 
-    radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+  padding: 2rem;
 }
 
 .app-header {
   padding: 2rem;
-  text-align: center;
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, transparent 100%);
-  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  background: #000000;
+  border: var(--border-width) solid #ffffff;
+  box-shadow: var(--shadow-brutal);
+  margin-bottom: 2rem;
   position: relative;
-  overflow: hidden;
-}
-
-.app-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--accent-gradient);
-  box-shadow: var(--glow);
 }
 
 .header-content {
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 0;
 }
 
 .app-title {
-  font-size: 3rem;
-  font-weight: 700;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-family: 'Inter', sans-serif;
+  font-size: 4rem;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
   margin-bottom: 0.5rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 1rem;
-  animation: fadeInDown 0.6s ease-out;
+  display: block;
+  line-height: 1;
 }
 
 .app-title .icon {
-  font-size: 3.5rem;
-  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.5));
+  display: none;
+  /* Removing icon for a cleaner brutalist look, or can be restyled */
 }
 
 .app-subtitle {
-  font-size: 1.1rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  animation: fadeInUp 0.6s ease-out 0.2s both;
+  font-size: 1.25rem;
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-top: var(--border-width) solid #fff;
+  padding-top: 0.5rem;
+  display: inline-block;
 }
 
 .app-container {
   max-width: 1200px;
   width: 100%;
-  margin: 0 auto;
-  padding: 2rem;
+  margin: 0;
+  padding: 0;
   flex: 1;
-  animation: fadeIn 0.8s ease-out 0.3s both;
 }
 
 /* Animations */
@@ -117,6 +101,7 @@ body {
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -128,6 +113,7 @@ body {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -138,6 +124,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -150,9 +137,12 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
