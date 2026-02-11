@@ -5,7 +5,11 @@ const fs = require('fs');
 const nodeID3 = require('node-id3');
 const axios = require('axios');
 
-ffmpeg.setFfmpegPath(ffmpegPath);
+let ffmpegBinary = ffmpegPath;
+if (ffmpegBinary.includes('app.asar')) {
+    ffmpegBinary = ffmpegBinary.replace('app.asar', 'app.asar.unpacked');
+}
+ffmpeg.setFfmpegPath(ffmpegBinary);
 
 async function getImageBuffer(url) {
     try {
