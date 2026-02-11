@@ -2,6 +2,9 @@
 
 A modern desktop application built with Electron and React that allows you to download YouTube videos and convert them to MP3.
 
+[![Download v1.0.0](https://img.shields.io/badge/Download-v1.0.0-blue?style=for-the-badge)](https://github.com/ghozifadilah/youtube-downloader/releases/tag/v1.0.0)
+
+
 ## Features
 
 - 🎬 Download single YouTube videos
