@@ -41,13 +41,25 @@ async function convertToMP3(inputPath, metadata, progressCallback) {
                 try {
                     // Add metadata
                     if (metadata) {
+                        const imageBuffer = metadata.image ? await getImageBuffer(metadata.image) : undefined;
+
                         const tags = {
                             title: metadata.title,
                             artist: metadata.artist,
                             album: metadata.album,
                             trackNumber: metadata.trackNumber,
-                            APIC: metadata.image ? await getImageBuffer(metadata.image) : undefined
                         };
+
+                        if (imageBuffer) {
+                            // Determine mime type from URL or default to jpeg
+                            const mimeType = metadata.image.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+                            tags.APIC = {
+                                mime: mimeType,
+                                type: { id: 3, name: 'front cover' },
+                                description: 'Front Cover',
+                                imageBuffer: imageBuffer
+                            };
+                        }
 
                         nodeID3.write(tags, outputPath);
                     }
