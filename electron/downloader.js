@@ -1,4 +1,4 @@
-const ytdl = require('@distube/ytdl-core');
+const ytdl = require('ytdl-core-enhanced');
 const ytpl = require('ytpl');
 const fs = require('fs');
 const path = require('path');

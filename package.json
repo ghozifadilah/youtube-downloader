@@ -54,6 +54,7 @@
     "node-id3": "^0.2.9",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "ytdl-core-enhanced": "^2.2.2",
     "ytpl": "^2.3.0"
   },
   "devDependencies": {
