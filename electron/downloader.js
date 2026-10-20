@@ -61,6 +61,14 @@ function getYtDlpPath() {
     return 'yt-dlp';
 }
 
+function getSpawnEnv() {
+    return {
+        ...process.env,
+        PYTHONIOENCODING: 'utf-8',
+        PYTHONUTF8: '1'
+    };
+}
+
 function getJsRuntimeArgs() {
     try {
         const test = spawnSync('node', ['-v'], { windowsHide: true });
@@ -93,16 +101,16 @@ async function getVideoInfo(url) {
             url
         ];
 
-        const proc = spawn(ytDlp, args, { windowsHide: true });
+        const proc = spawn(ytDlp, args, { windowsHide: true, env: getSpawnEnv() });
         let stdout = '';
         let stderr = '';
 
         proc.stdout.on('data', chunk => {
-            stdout += chunk;
+            stdout += chunk.toString('utf8');
         });
 
         proc.stderr.on('data', chunk => {
-            stderr += chunk;
+            stderr += chunk.toString('utf8');
         });
 
         proc.on('close', code => {
@@ -176,7 +184,6 @@ async function downloadVideo(url, outputPath, quality = 'highest', progressCallb
             const args = [
                 ...getJsRuntimeArgs(),
                 '--newline',
-                '--windows-filenames',
                 '--progress-template', 'PROGRESS:%(progress._percent_str)s|%(progress._downloaded_bytes_str)s|%(progress._total_bytes_str)s|%(info.title)s',
                 '--print', 'after_move:FINAL_PATH:%(filepath)s',
                 '--print', 'META:%(title)s\t%(uploader)s\t%(album)s\t%(track_number)s\t%(id)s\t%(thumbnail)s'
@@ -207,7 +214,7 @@ async function downloadVideo(url, outputPath, quality = 'highest', progressCallb
             args.push('-o', path.join(outputPath, '%(title)s.%(ext)s'));
             args.push(url);
 
-            const proc = spawn(ytDlp, args, { windowsHide: true });
+            const proc = spawn(ytDlp, args, { windowsHide: true, env: getSpawnEnv() });
             let finalPath = '';
             let metaTitle = '';
             let metaArtist = '';
@@ -217,9 +224,13 @@ async function downloadVideo(url, outputPath, quality = 'highest', progressCallb
             let metaThumb = '';
             let lastReportedTitle = '';
             let stderrOutput = '';
+            let stdoutBuffer = '';
 
             proc.stdout.on('data', chunk => {
-                const lines = chunk.toString().split(/\r?\n/);
+                stdoutBuffer += chunk.toString('utf8');
+                const lines = stdoutBuffer.split(/\r?\n/);
+                stdoutBuffer = lines.pop(); // keep trailing incomplete line
+
                 for (const line of lines) {
                     if (line.startsWith('FINAL_PATH:')) {
                         finalPath = line.substring('FINAL_PATH:'.length).trim();
@@ -253,7 +264,7 @@ async function downloadVideo(url, outputPath, quality = 'highest', progressCallb
             });
 
             proc.stderr.on('data', chunk => {
-                stderrOutput += chunk.toString();
+                stderrOutput += chunk.toString('utf8');
             });
 
             proc.on('close', code => {
@@ -261,21 +272,58 @@ async function downloadVideo(url, outputPath, quality = 'highest', progressCallb
                     return reject(new Error(`Download failed (code ${code}): ${stderrOutput || 'Unknown error'}`));
                 }
 
-                // If finalPath wasn't captured directly via FINAL_PATH
-                if (!finalPath) {
-                    if (metaTitle) {
-                        const safeTitle = sanitizeFilename(metaTitle);
+                if (stdoutBuffer.trim()) {
+                    const line = stdoutBuffer.trim();
+                    if (line.startsWith('FINAL_PATH:')) {
+                        finalPath = line.substring('FINAL_PATH:'.length).trim();
+                    }
+                }
+
+                // If finalPath wasn't captured directly via FINAL_PATH or does not exist on disk
+                if (!finalPath || !fs.existsSync(finalPath)) {
+                    try {
+                        const files = fs.readdirSync(outputPath);
                         const possibleExts = (format === 'mp3' || quality === 'audio')
                             ? ['.m4a', '.webm', '.opus', '.mp3']
                             : ['.mp4', '.mkv', '.webm'];
-                        for (const ext of possibleExts) {
-                            const candidate = path.join(outputPath, `${safeTitle}${ext}`);
-                            if (fs.existsSync(candidate)) {
-                                finalPath = candidate;
-                                break;
+
+                        // 1. Try finding by video ID in the output folder
+                        if (metaId) {
+                            for (const file of files) {
+                                if (file.includes(metaId) && possibleExts.some(ext => file.toLowerCase().endsWith(ext))) {
+                                    finalPath = path.join(outputPath, file);
+                                    break;
+                                }
                             }
                         }
-                    }
+
+                        // 2. Try finding by start of title
+                        if ((!finalPath || !fs.existsSync(finalPath)) && metaTitle) {
+                            const titleStart = metaTitle.substring(0, Math.min(20, metaTitle.length)).trim().toLowerCase();
+                            for (const file of files) {
+                                if (file.toLowerCase().includes(titleStart) && possibleExts.some(ext => file.toLowerCase().endsWith(ext))) {
+                                    finalPath = path.join(outputPath, file);
+                                    break;
+                                }
+                            }
+                        }
+
+                        // 3. Fallback to sanitized title
+                        if ((!finalPath || !fs.existsSync(finalPath)) && metaTitle) {
+                            const safeTitle = sanitizeFilename(metaTitle);
+                            for (const ext of possibleExts) {
+                                const candidate = path.join(outputPath, `${safeTitle}${ext}`);
+                                if (fs.existsSync(candidate)) {
+                                    finalPath = candidate;
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                }
+
+                if (!finalPath || !fs.existsSync(finalPath)) {
+                    return reject(new Error(`Downloaded file could not be found at: ${finalPath || 'unknown path'}. Stderr: ${stderrOutput || 'none'}`));
                 }
 
                 const resolvedThumb = metaId ? `https://i.ytimg.com/vi/${metaId}/hqdefault.jpg` : metaThumb;
@@ -314,11 +362,11 @@ async function downloadPlaylist(playlistUrl, outputPath, quality, format, playli
         ];
 
         const jsonOutput = await new Promise((resolve, reject) => {
-            const proc = spawn(ytDlp, args, { windowsHide: true });
+            const proc = spawn(ytDlp, args, { windowsHide: true, env: getSpawnEnv() });
             let stdout = '';
             let stderr = '';
-            proc.stdout.on('data', c => stdout += c);
-            proc.stderr.on('data', c => stderr += c);
+            proc.stdout.on('data', c => stdout += c.toString('utf8'));
+            proc.stderr.on('data', c => stderr += c.toString('utf8'));
             proc.on('close', code => {
                 if (code !== 0) return reject(new Error(`Failed to read playlist: ${stderr || code}`));
                 try {
