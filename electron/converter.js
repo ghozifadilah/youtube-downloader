@@ -14,7 +14,7 @@ ffmpeg.setFfmpegPath(ffmpegBinary);
 async function getImageBuffer(url) {
     try {
         const response = await axios.get(url, { responseType: 'arraybuffer' });
-        return Buffer.from(response.data, 'binary');
+        return Buffer.from(response.data);
     } catch (error) {
         console.error('Failed to fetch thumbnail buffer:', error);
         return null;
@@ -24,6 +24,48 @@ async function getImageBuffer(url) {
 async function convertToMP3(inputPath, metadata, progressCallback) {
     return new Promise(async (resolve, reject) => {
         const outputPath = inputPath.replace(/\.[^/.]+$/, '') + '.mp3';
+
+        async function applyTags() {
+            if (metadata) {
+                const imageBuffer = metadata.image ? await getImageBuffer(metadata.image) : undefined;
+
+                const tags = {
+                    title: metadata.title,
+                    artist: metadata.artist,
+                    album: metadata.album,
+                    trackNumber: metadata.trackNumber,
+                };
+
+                if (imageBuffer) {
+                    const mimeType = metadata.image.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+                    tags.APIC = {
+                        mime: mimeType,
+                        type: { id: 3, name: 'front cover' },
+                        description: 'Front Cover',
+                        imageBuffer: imageBuffer
+                    };
+                }
+
+                nodeID3.write(tags, outputPath);
+            }
+        }
+
+        // If the file is already an MP3, avoid running ffmpeg over itself
+        if (path.resolve(inputPath).toLowerCase() === path.resolve(outputPath).toLowerCase()) {
+            try {
+                await applyTags();
+                if (progressCallback) {
+                    progressCallback({
+                        percent: 100,
+                        currentTime: 'Done',
+                        status: 'converting'
+                    });
+                }
+                return resolve(outputPath);
+            } catch (err) {
+                return reject(new Error(`Failed to write metadata: ${err.message}`));
+            }
+        }
 
         ffmpeg(inputPath)
             .toFormat('mp3')
@@ -39,32 +81,9 @@ async function convertToMP3(inputPath, metadata, progressCallback) {
             })
             .on('end', async () => {
                 try {
-                    // Add metadata
-                    if (metadata) {
-                        const imageBuffer = metadata.image ? await getImageBuffer(metadata.image) : undefined;
+                    await applyTags();
 
-                        const tags = {
-                            title: metadata.title,
-                            artist: metadata.artist,
-                            album: metadata.album,
-                            trackNumber: metadata.trackNumber,
-                        };
-
-                        if (imageBuffer) {
-                            // Determine mime type from URL or default to jpeg
-                            const mimeType = metadata.image.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-                            tags.APIC = {
-                                mime: mimeType,
-                                type: { id: 3, name: 'front cover' },
-                                description: 'Front Cover',
-                                imageBuffer: imageBuffer
-                            };
-                        }
-
-                        nodeID3.write(tags, outputPath);
-                    }
-
-                    // Delete the original video file after conversion
+                    // Delete the original audio/video file after conversion
                     fs.unlink(inputPath, (err) => {
                         if (err) console.error('Error deleting original file:', err);
                     });
